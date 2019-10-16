@@ -13,7 +13,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index",
     "build": "cd client && npm run build",
-    "heroku-postbuild": "npm run build"
+    "heroku-postbuild": "npm install && cd client && npm install && npm run build"
   },
   "repository": {
     "type": "git",
