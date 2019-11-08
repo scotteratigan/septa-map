@@ -1,16 +1,17 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const axios = require('axios');
+const express = require("express");
+const bodyParser = require("body-parser");
+const axios = require("axios");
 const WEBSERVER_PORT = process.env.PORT || 5000;
 const app = express();
 app.use(bodyParser.json());
-app.use(express.static('client/build'));
+app.use(express.static("client/build"));
 
-app.get('/septa', (req, res) => {
+app.get("/septa", (req, res) => {
   axios
-    .get('http://www3.septa.org/hackathon/TransitViewAll/')
+    .get("http://www3.septa.org/hackathon/TransitViewAll/")
     .then(response => {
       const routes = response.data.routes[0];
+      // Reshape the data into a flat array:
       const routeNames = Object.keys(routes);
       const simpleVehicleArr = [];
       routeNames.forEach(name => {
@@ -21,7 +22,7 @@ app.get('/septa', (req, res) => {
             ...vehicle,
             route: name,
             name: VehicleID,
-            coordinates: [parseFloat(lng), parseFloat(lat)],
+            coordinates: [parseFloat(lng), parseFloat(lat)]
           });
         });
       });
@@ -33,8 +34,8 @@ app.get('/septa', (req, res) => {
     });
 });
 
-app.get('*', (req, res) => {
-  res.send('404 :/');
+app.get("*", (req, res) => {
+  res.send("404 :/");
 });
 
 app.listen(WEBSERVER_PORT, () => {
