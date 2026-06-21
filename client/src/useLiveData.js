@@ -1,58 +1,79 @@
-import { useEffect, useState, useRef } from "react";
-const axios = require("axios");
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
 
+const POLL_INTERVAL_MS = 10000;
+const ANIMATION_INTERVAL_MS = 1000;
+const TOTAL_STEPS = POLL_INTERVAL_MS / ANIMATION_INTERVAL_MS;
+
+// Polls the /septa proxy for live vehicle positions and smoothly interpolates
+// each vehicle from its previous position to its newly reported one between
+// polls, so the markers glide instead of teleporting.
 export default function useLiveData() {
-  const [coordinates, setCoordinates] = useState({});
-  const [data, setData] = useState([]); //temporary
-  const [displayData, setDisplayData] = useState([]); //actual return?
-  const [step, setStep] = useState(0);
-  const TOTAL_STEPS = 10;
+  const [displayData, setDisplayData] = useState([]);
 
-  function updateData() {
-    console.log("Updating vehicle positions...");
-    const newCoordinates = {};
-    data.forEach(vehicle => {
-      const { VehicleID, coordinates } = vehicle;
-      newCoordinates[VehicleID].from = { coordinates };
-    });
-    axios
-      .get("/septa")
-      .then(res => {
-        res.data.forEach(vehicle => {
-          const { VehicleID, coordinates } = vehicle;
-          newCoordinates[VehicleID].to = { coordinates }; // error: cannot set value 'to' of undefined
-        });
-        const newData = [...res.data].map(vehicle => ({ ...vehicle })); // required to make a copy of the coordinates array
-        setData(newData);
-        setCoordinates(newCoordinates);
-        setStep(0);
-        console.log(res.data);
-      })
-      .catch(err => {
-        console.error("error:", err);
+  // Animation state lives in refs so the interval callbacks always read the
+  // latest values without having to re-subscribe on every render.
+  const fromRef = useRef({}); // VehicleID -> [lng, lat] start of current tween
+  const toRef = useRef({}); // VehicleID -> [lng, lat] latest reported position
+  const vehiclesRef = useRef([]); // latest vehicle metadata, in feed order
+  const stepRef = useRef(TOTAL_STEPS);
+
+  async function poll() {
+    try {
+      const res = await axios.get("/septa");
+      if (!Array.isArray(res.data)) return;
+
+      const nextTo = {};
+      res.data.forEach(vehicle => {
+        nextTo[vehicle.VehicleID] = vehicle.coordinates;
       });
+
+      // Start the next tween from each vehicle's last reported position. New
+      // vehicles fall back to their fresh position so they appear in place
+      // instead of animating in from [0, 0].
+      const prevTo = toRef.current;
+      const nextFrom = {};
+      res.data.forEach(vehicle => {
+        const id = vehicle.VehicleID;
+        nextFrom[id] = prevTo[id] || nextTo[id];
+      });
+
+      fromRef.current = nextFrom;
+      toRef.current = nextTo;
+      vehiclesRef.current = res.data;
+      stepRef.current = 0;
+    } catch (err) {
+      console.error("Failed to fetch SEPTA vehicle positions:", err);
+    }
   }
 
-  function getCurrentCoordinates() {
-    const newDisplayData = [...data].map(vehicle => {
+  function animate() {
+    const vehicles = vehiclesRef.current;
+    if (vehicles.length === 0) return;
+
+    const t = Math.min(stepRef.current, TOTAL_STEPS) / TOTAL_STEPS;
+
+    const frame = vehicles.map(vehicle => {
       const id = vehicle.VehicleID;
-      const prevLng = coordinates[id].from[0];
-      const prevLat = coordinates[id].from[1];
-      const currLng = coordinates[id].to[0];
-      const currLat = coordinates[id].to[1];
-      const lngStep = (prevLng - currLng) / TOTAL_STEPS;
-      const latStep = (prevLat - currLat) / TOTAL_STEPS;
-      const lngVal = prevLng + lngStep * step;
-      const latVal = prevLat + latStep * step;
-      return { ...vehicle, coordinates: [lngVal, latVal] };
+      const from = fromRef.current[id] || vehicle.coordinates;
+      const to = toRef.current[id] || vehicle.coordinates;
+      const lng = from[0] + (to[0] - from[0]) * t;
+      const lat = from[1] + (to[1] - from[1]) * t;
+      return { ...vehicle, coordinates: [lng, lat] };
     });
-    setDisplayData(newDisplayData);
-    setStep(step + 1);
+
+    setDisplayData(frame);
+    if (stepRef.current < TOTAL_STEPS) stepRef.current += 1;
   }
 
-  useInterval(getCurrentCoordinates, 1000);
-  useInterval(updateData, 10000);
-  // return data;
+  useEffect(() => {
+    poll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useInterval(poll, POLL_INTERVAL_MS);
+  useInterval(animate, ANIMATION_INTERVAL_MS);
+
   return displayData;
 }
 
@@ -66,7 +87,7 @@ function useInterval(callback, delay) {
       savedCallback.current();
     }
     if (delay !== null) {
-      let id = setInterval(tick, delay);
+      const id = setInterval(tick, delay);
       return () => clearInterval(id);
     }
   }, [delay]);

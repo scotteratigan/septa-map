@@ -1,7 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const axios = require("axios");
-const WEBSERVER_PORT = process.env.PORT || 5000;
+const WEBSERVER_PORT = process.env.PORT || 5050;
 const app = express();
 app.use(bodyParser.json());
 app.use(express.static("client/build"));

@@ -9,14 +9,16 @@
     "express": "^4.17.1"
   },
   "devDependencies": {
-    "concurrently": "^5.0.0"
+    "concurrently": "^5.0.0",
+    "wrangler": "^4.103.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index",
-    "dev": "concurrently \"node index\" \"cd client && npm run start\"",
-    "build": "cd client && npm run build",
-    "heroku-postbuild": "npm install && cd client && npm install && npm run build"
+    "dev": "concurrently \"PORT=5050 node index\" \"cd client && npm run start\"",
+    "build": "cd client && npm install && npm run build",
+    "cf:dev": "npm run build && wrangler pages dev",
+    "cf:deploy": "npm run build && wrangler pages deploy"
   },
   "repository": {
     "type": "git",
