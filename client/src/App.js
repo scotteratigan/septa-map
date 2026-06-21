@@ -38,6 +38,26 @@ function vehicleType(route) {
   return 'bus';
 }
 
+// Maps the new SEPTA Metro trolley codes to their legacy (pre-Metro) route
+// numbers, so riders who still know the lines by number can recognize them.
+const TROLLEY_LEGACY_NUMBERS = {
+  T1: '10',
+  T2: '11',
+  T3: '13',
+  T4: '34',
+  T5: '36',
+  D1: '15',
+  G1: '101',
+  G2: '102',
+};
+
+// Renders a route for display, appending the legacy trolley number in parens
+// when the route is a SEPTA Metro trolley code (e.g. "T1 (10)").
+function routeLabel(route) {
+  const legacy = TROLLEY_LEGACY_NUMBERS[String(route).toUpperCase()];
+  return legacy ? `${route} (${legacy})` : String(route);
+}
+
 const ICON_DIMENSIONS = { width: 128, height: 128, anchorY: 128, mask: true };
 
 function lateness(late) {
@@ -47,13 +67,62 @@ function lateness(late) {
   return 'On time';
 }
 
+// Buckets a vehicle's reported lateness (in minutes) into a status category.
+// SEPTA reports a few minutes of slack as effectively on time.
+const ON_TIME_THRESHOLD = 2;
+
+function status(late) {
+  if (typeof late !== 'number') return 'unknown';
+  if (late > ON_TIME_THRESHOLD) return 'late';
+  if (late < -ON_TIME_THRESHOLD) return 'early';
+  return 'onTime';
+}
+
+const STATUS_OPTIONS = {
+  all: 'All statuses',
+  onTime: 'On time',
+  late: 'Late',
+  early: 'Early',
+};
+
 function App() {
   const busData = useLiveData();
   const [hover, setHover] = useState(null);
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [routeFilter, setRouteFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Routes available in the current feed, narrowed to the selected vehicle
+  // type so the route dropdown only ever offers relevant choices.
+  const routeOptions = React.useMemo(() => {
+    const routes = new Set();
+    busData.forEach(d => {
+      if (typeFilter === 'all' || vehicleType(d.route) === typeFilter) {
+        routes.add(String(d.route));
+      }
+    });
+    return Array.from(routes).sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true })
+    );
+  }, [busData, typeFilter]);
+
+  const filteredData = busData.filter(d => {
+    if (typeFilter !== 'all' && vehicleType(d.route) !== typeFilter) return false;
+    if (routeFilter !== 'all' && String(d.route) !== routeFilter) return false;
+    if (statusFilter !== 'all' && status(d.late) !== statusFilter) return false;
+    return true;
+  });
+
+  function handleTypeChange(value) {
+    setTypeFilter(value);
+    // A route only belongs to one vehicle type, so changing type can orphan the
+    // current route selection; reset it to avoid an empty result set.
+    setRouteFilter('all');
+  }
 
   const busLayer = new IconLayer({
     id: 'icon-layer',
-    data: busData,
+    data: filteredData,
     pickable: true,
     getIcon: d => {
       const type = vehicleType(d.route);
@@ -83,10 +152,69 @@ function App() {
         layers={[busLayer]}>
         <StaticMap mapboxApiAccessToken={process.env.REACT_APP_MAPBOX_TOKEN} />
       </DeckGL>
+
+      <div className='hud'>
+        <header className='page-header'>
+          <h1 className='page-header__title'>SEPTA Live Feed</h1>
+          <p className='page-header__subtitle'>
+            Real-time positions of SEPTA buses, trolleys, and subways across
+            Philadelphia, updated every few seconds.
+          </p>
+        </header>
+
+        <div className='controls'>
+          <div className='filters'>
+          <label className='filters__field'>
+            <span className='filters__label'>Vehicle type</span>
+            <select
+              value={typeFilter}
+              onChange={e => handleTypeChange(e.target.value)}>
+              <option value='all'>All vehicles</option>
+              {Object.entries(VEHICLE_TYPES).map(([key, { label }]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className='filters__field'>
+            <span className='filters__label'>Route</span>
+            <select
+              value={routeFilter}
+              onChange={e => setRouteFilter(e.target.value)}>
+              <option value='all'>All routes</option>
+              {routeOptions.map(route => (
+                <option key={route} value={route}>
+                  {routeLabel(route)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className='filters__field'>
+            <span className='filters__label'>Status</span>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}>
+              {Object.entries(STATUS_OPTIONS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+          <div className='filters__count'>
+            Showing {filteredData.length} of {busData.length} vehicles
+          </div>
+        </div>
+      </div>
       {hover && (
         <div className='bus-tooltip' style={{ left: hover.x, top: hover.y }}>
           <div className='bus-tooltip__route'>
-            {hoveredType.label} &middot; Route {hover.object.route}
+            {hoveredType.label} &middot; Route {routeLabel(hover.object.route)}
           </div>
           <div>Vehicle {hover.object.VehicleID}</div>
           {hover.object.Direction && <div>Heading {hover.object.Direction}</div>}
