@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { DeckGL } from "@deck.gl/react";
 import { IconLayer } from "@deck.gl/layers";
 import Map from "react-map-gl";
@@ -15,6 +15,7 @@ import {
   Vehicle,
   VehicleType,
 } from "./types";
+import { lateness, routeLabel, status, vehicleType } from "./vehicleUtils";
 
 const initialViewState = {
   latitude: 39.9473128,
@@ -33,67 +34,7 @@ const VEHICLE_TYPES: Record<
   subway: { label: "Subway", icon: subwayImg, color: [37, 99, 235] },
 };
 
-// SEPTA's TransitView feed has no vehicle-type field, so derive it from the
-// SEPTA Metro route code: B/L/M = subway-grade rail, T/D/G = trolley lines.
-// The numeric set is a fallback for the legacy (pre-Metro) trolley route names.
-const LEGACY_TROLLEY_ROUTES = new Set([
-  "10",
-  "11",
-  "13",
-  "15",
-  "34",
-  "36",
-  "101",
-  "102",
-]);
-
-function vehicleType(route: string): VehicleType {
-  const r = String(route).toUpperCase();
-  if (/^[BLM]\d+$/.test(r)) return "subway";
-  if (/^[TDG]\d+$/.test(r)) return "trolley";
-  if (LEGACY_TROLLEY_ROUTES.has(r)) return "trolley";
-  return "bus";
-}
-
-// Maps the new SEPTA Metro trolley codes to their legacy (pre-Metro) route
-// numbers, so riders who still know the lines by number can recognize them.
-const TROLLEY_LEGACY_NUMBERS: Record<string, string> = {
-  T1: "10",
-  T2: "11",
-  T3: "13",
-  T4: "34",
-  T5: "36",
-  D1: "15",
-  G1: "101",
-  G2: "102",
-};
-
-// Renders a route for display, appending the legacy trolley number in parens
-// when the route is a SEPTA Metro trolley code (e.g. "T1 (10)").
-function routeLabel(route: string): string {
-  const legacy = TROLLEY_LEGACY_NUMBERS[String(route).toUpperCase()];
-  return legacy ? `${route} (${legacy})` : String(route);
-}
-
 const ICON_DIMENSIONS = { width: 128, height: 128, anchorY: 128, mask: true };
-
-function lateness(late: number | undefined): string | null {
-  if (typeof late !== "number") return null;
-  if (late > 0) return `${late} min late`;
-  if (late < 0) return `${Math.abs(late)} min early`;
-  return "On time";
-}
-
-// Buckets a vehicle's reported lateness (in minutes) into a status category.
-// SEPTA reports a few minutes of slack as effectively on time.
-const ON_TIME_THRESHOLD = 2;
-
-function status(late: number | undefined): Exclude<StatusFilter, "all"> {
-  if (typeof late !== "number") return "unknown";
-  if (late > ON_TIME_THRESHOLD) return "late";
-  if (late < -ON_TIME_THRESHOLD) return "early";
-  return "onTime";
-}
 
 const STATUS_OPTIONS: Record<Exclude<StatusFilter, "unknown">, string> = {
   all: "All statuses",
@@ -110,6 +51,30 @@ function App() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [routeFilter, setRouteFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const busDataRef = useRef(busData);
+  busDataRef.current = busData;
+
+  useEffect(() => {
+    if (import.meta.env.VITE_E2E !== "true") return;
+
+    window.__SEPTA_MAP_TEST__ = {
+      hoverVehicle(vehicleId: string) {
+        const vehicle = busDataRef.current.find(
+          (entry) => entry.VehicleID === vehicleId,
+        );
+        if (!vehicle) return false;
+        setHover({ object: vehicle, x: 120, y: 200 });
+        return true;
+      },
+      clearHover() {
+        setHover(null);
+      },
+    };
+
+    return () => {
+      delete window.__SEPTA_MAP_TEST__;
+    };
+  }, []);
 
   // Routes available in the current feed, narrowed to the selected vehicle
   // type so the route dropdown only ever offers relevant choices.

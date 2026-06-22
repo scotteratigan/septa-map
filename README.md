@@ -37,12 +37,47 @@ activate it automatically in this directory).
 # install dependencies (npm workspaces — single install at repo root)
 npm install
 
-# run the Express proxy (:5050) and the Vite dev server (:5173) together
+# run Express (:5050), Vite (:5173), and Chrome with CDP debug port (:9222)
 npm run dev
+```
+
+This launches Chrome with remote debugging enabled and writes connection info to
+`.dev/browser.json`. Coding agents (and Playwright) can attach to the running
+browser without starting a new one:
+
+```bash
+# snapshot the app — screenshot, console errors, vehicle count
+npm run inspect
+```
+
+Outputs land in `.dev/inspect-screenshot.png` and `.dev/inspect-report.json`.
+
+To run servers only (no browser):
+
+```bash
+npm run dev:server
 ```
 
 The Vite dev server proxies `/septa` to the Express server on port 5050 (see
 `server.proxy` in `client/vite.config.ts`).
+
+**Agent browser connection**
+
+| Resource | Value |
+| -------- | ----- |
+| App URL | `http://localhost:5173` |
+| CDP URL | `http://127.0.0.1:9222` |
+| Connection file | `.dev/browser.json` |
+
+Playwright attach example:
+
+```javascript
+import { chromium } from 'playwright';
+import { readFileSync } from 'fs';
+
+const { cdpUrl } = JSON.parse(readFileSync('.dev/browser.json', 'utf8'));
+const browser = await chromium.connectOverCDP(cdpUrl);
+```
 
 To test the production setup (static build + the real Cloudflare Function)
 locally, use Wrangler:
@@ -54,6 +89,7 @@ npm run cf:dev   # builds client/ then runs `wrangler pages dev`
 ## Tooling
 
 - **Vite** — dev server and production bundler
+- **Chrome CDP** — debug browser launched by `npm run dev` for visual inspection
 - **Oxlint** — linting (`npm run lint`)
 - **Oxfmt** — formatting (`npm run format`, `npm run format:check`)
 - **Husky** + **lint-staged** — format and lint on pre-commit

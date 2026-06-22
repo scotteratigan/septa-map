@@ -13,9 +13,17 @@ declare module "*.svg?url" {
 declare module "*.scss";
 
 interface ImportMetaEnv {
-  readonly VITE_MAPBOX_TOKEN?: string;
+  readonly VITE_MAPBOX_TOKEN: string;
+  readonly VITE_E2E?: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+interface Window {
+  __SEPTA_MAP_TEST__?: {
+    hoverVehicle: (vehicleId: string) => boolean;
+    clearHover: () => void;
+  };
 }

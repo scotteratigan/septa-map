@@ -16,6 +16,8 @@
     "express": "^4.17.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@types/supertest": "^6.0.3",
     "@types/express": "^5.0.0",
     "@types/node": "^26.0.0",
     "concurrently": "^5.0.0",
@@ -24,8 +26,10 @@
     "oxfmt": "^0.9.0",
     "oxlint": "^0.16.0",
     "playwright": "^1.61.0",
+    "supertest": "^7.1.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
+    "vitest": "^4.1.9",
     "wrangler": "^4.103.0"
   },
   "scripts": {
@@ -33,9 +37,13 @@
     "lint": "oxlint .",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
-    "test": "npm run test -w client",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "npm run test -w client && vitest run --config vitest.config.ts",
+    "test:e2e": "playwright test",
     "start": "tsx index.ts",
-    "dev": "concurrently \"PORT=5050 tsx index.ts\" \"npm run dev -w client\"",
+    "dev": "concurrently -n server,vite,chrome -c blue,green,magenta \"PORT=5050 tsx index.ts\" \"npm run dev -w client\" \"node scripts/open-chrome-dev.mjs\"",
+    "dev:server": "concurrently \"PORT=5050 tsx index.ts\" \"npm run dev -w client\"",
+    "inspect": "node scripts/inspect-app.mjs",
     "build": "npm run build -w client",
     "cf:dev": "npm run build && wrangler pages dev",
     "cf:deploy": "npm run build && wrangler pages deploy"
