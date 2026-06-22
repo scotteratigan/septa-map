@@ -24,11 +24,11 @@ describe("useLiveData", () => {
     const { result } = renderHook(() => useLiveData());
 
     await waitFor(() => {
-      expect(result.current).toHaveLength(mockVehicles.length);
+      expect(result.current.vehicles).toHaveLength(mockVehicles.length);
     });
 
     expect(mockedAxios.get).toHaveBeenCalledWith("/septa");
-    expect(result.current[0].VehicleID).toBe("bus-late");
+    expect(result.current.vehicles[0].VehicleID).toBe("bus-late");
   });
 
   it("ignores invalid API responses", async () => {
@@ -40,7 +40,7 @@ describe("useLiveData", () => {
       expect(mockedAxios.get).toHaveBeenCalled();
     });
 
-    expect(result.current).toEqual([]);
+    expect(result.current.vehicles).toEqual([]);
   });
 
   it("interpolates coordinates between polls", async () => {
@@ -71,14 +71,93 @@ describe("useLiveData", () => {
       await Promise.resolve();
     });
 
-    expect(result.current).toHaveLength(firstPoll.length);
-    const startLng = result.current[0].coordinates[0];
+    expect(result.current.vehicles).toHaveLength(firstPoll.length);
+    const startLng = result.current.vehicles[0].coordinates[0];
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
       await vi.advanceTimersByTimeAsync(1_000);
     });
 
-    expect(result.current[0].coordinates[0]).not.toBe(startLng);
+    expect(result.current.vehicles[0].coordinates[0]).not.toBe(startLng);
+  });
+
+  it("pauses polling while the tab is hidden", async () => {
+    vi.useFakeTimers();
+    mockedAxios.get.mockResolvedValue({ data: mockVehicles });
+    const hiddenSpy = vi.spyOn(document, "hidden", "get");
+
+    const { result } = renderHook(() => useLiveData());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+
+    hiddenSpy.mockReturnValue(true);
+
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    expect(result.current.vehicles).toHaveLength(mockVehicles.length);
+
+    hiddenSpy.mockRestore();
+  });
+
+  it("expires the session after five visible minutes", async () => {
+    vi.useFakeTimers();
+    mockedAxios.get.mockResolvedValue({ data: mockVehicles });
+
+    const { result } = renderHook(() => useLiveData());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.isSessionExpired).toBe(false);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 1);
+    });
+
+    expect(result.current.isSessionExpired).toBe(true);
+
+    const callsAtExpiry = mockedAxios.get.mock.calls.length;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(callsAtExpiry);
+  });
+
+  it("refresh resumes polling after session expiry", async () => {
+    vi.useFakeTimers();
+    mockedAxios.get.mockResolvedValue({ data: mockVehicles });
+
+    const { result } = renderHook(() => useLiveData());
+
+    await act(async () => {
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000 + 1);
+    });
+
+    expect(result.current.isSessionExpired).toBe(true);
+    const callsAtExpiry = mockedAxios.get.mock.calls.length;
+
+    await act(async () => {
+      result.current.refresh();
+      await Promise.resolve();
+    });
+
+    expect(result.current.isSessionExpired).toBe(false);
+    expect(mockedAxios.get).toHaveBeenCalledTimes(callsAtExpiry + 1);
   });
 });

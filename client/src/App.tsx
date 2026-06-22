@@ -46,7 +46,7 @@ const STATUS_OPTIONS: Record<Exclude<StatusFilter, "unknown">, string> = {
 const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
 
 function App() {
-  const busData = useLiveData();
+  const { vehicles: busData, isSessionExpired, refresh } = useLiveData();
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [routeFilter, setRouteFilter] = useState("all");
@@ -210,6 +210,24 @@ function App() {
           </div>
         </div>
       </div>
+      {isSessionExpired && (
+        <div className="session-modal" role="dialog" aria-modal="true">
+          <div className="session-modal__panel">
+            <h2 className="session-modal__title">Live feed paused</h2>
+            <p className="session-modal__body">
+              Updates stop after 5 minutes to limit server usage. Refresh to
+              load the latest vehicle positions.
+            </p>
+            <button
+              type="button"
+              className="session-modal__button"
+              onClick={refresh}
+            >
+              Refresh live feed
+            </button>
+          </div>
+        </div>
+      )}
       {hover && hoveredType && (
         <div className="bus-tooltip" style={{ left: hover.x, top: hover.y }}>
           <div className="bus-tooltip__route">

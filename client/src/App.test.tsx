@@ -4,7 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { mockVehicles } from "./testFixtures";
 
-const useLiveDataMock = vi.fn(() => mockVehicles);
+const useLiveDataMock = vi.fn(() => ({
+  vehicles: mockVehicles,
+  isSessionExpired: false,
+  refresh: vi.fn(),
+}));
+
+vi.mock("./useLiveData", () => ({
+  default: () => useLiveDataMock(),
+}));
 
 vi.mock("@deck.gl/react", () => ({
   DeckGL: ({
@@ -41,13 +49,13 @@ vi.mock("react-map-gl", () => ({
   default: () => <div data-testid="map" />,
 }));
 
-vi.mock("./useLiveData", () => ({
-  default: () => useLiveDataMock(),
-}));
-
 describe("App", () => {
   beforeEach(() => {
-    useLiveDataMock.mockReturnValue(mockVehicles);
+    useLiveDataMock.mockReturnValue({
+      vehicles: mockVehicles,
+      isSessionExpired: false,
+      refresh: vi.fn(),
+    });
   });
 
   it("renders the page header and vehicle count", () => {
@@ -112,5 +120,21 @@ describe("App", () => {
     expect(screen.getByText("Heading EastBound")).toBeInTheDocument();
     expect(screen.getByText("To Center City")).toBeInTheDocument();
     expect(screen.getByText("5 min late")).toBeInTheDocument();
+  });
+
+  it("shows a refresh modal when the live session expires", () => {
+    useLiveDataMock.mockReturnValue({
+      vehicles: mockVehicles,
+      isSessionExpired: true,
+      refresh: vi.fn(),
+    });
+
+    render(<App />);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Live feed paused")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Refresh live feed" }),
+    ).toBeInTheDocument();
   });
 });

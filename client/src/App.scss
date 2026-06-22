@@ -147,6 +147,63 @@ $panel-width: 280px;
   }
 }
 
+.session-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.45);
+  padding: 16px;
+
+  &__panel {
+    box-sizing: border-box;
+    width: min(360px, 100%);
+    background-color: $panel-bg;
+    color: #fff;
+    border-radius: 10px;
+    padding: 20px 22px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    font-family: $panel-font;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  &__body {
+    margin: 10px 0 18px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  &__button {
+    appearance: none;
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.22);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.55);
+    }
+  }
+}
+
 .bus-tooltip {
   position: absolute;
   z-index: 1;

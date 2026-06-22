@@ -1,18 +1,29 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { isVehicleArray, Vehicle } from "./types";
 
 const POLL_INTERVAL_MS = 10000;
 const ANIMATION_INTERVAL_MS = 1000;
+const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
 const TOTAL_STEPS = POLL_INTERVAL_MS / ANIMATION_INTERVAL_MS;
 
 type CoordinateMap = Record<string, [number, number]>;
 
+export type LiveDataResult = {
+  vehicles: Vehicle[];
+  isSessionExpired: boolean;
+  refresh: () => void;
+};
+
 // Polls the /septa proxy for live vehicle positions and smoothly interpolates
 // each vehicle from its previous position to its newly reported one between
-// polls, so the markers glide instead of teleporting.
-export default function useLiveData(): Vehicle[] {
+// polls, so the markers glide instead of teleporting. Polling pauses while the
+// tab is hidden and stops after SESSION_TIMEOUT_MS of visible time.
+export default function useLiveData(): LiveDataResult {
   const [displayData, setDisplayData] = useState<Vehicle[]>([]);
+  const [isTabVisible, setIsTabVisible] = useState(() => !document.hidden);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const isLive = isTabVisible && !isSessionExpired;
 
   // Animation state lives in refs so the interval callbacks always read the
   // latest values without having to re-subscribe on every render.
@@ -20,6 +31,8 @@ export default function useLiveData(): Vehicle[] {
   const toRef = useRef<CoordinateMap>({});
   const vehiclesRef = useRef<Vehicle[]>([]);
   const stepRef = useRef(TOTAL_STEPS);
+
+  const pollRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
   async function poll() {
     try {
@@ -70,14 +83,39 @@ export default function useLiveData(): Vehicle[] {
     if (stepRef.current < TOTAL_STEPS) stepRef.current += 1;
   }
 
+  pollRef.current = poll;
+
+  const refresh = useCallback(() => {
+    setIsSessionExpired(false);
+    void pollRef.current();
+  }, []);
+
   useEffect(() => {
     poll();
   }, []);
 
-  useInterval(poll, POLL_INTERVAL_MS);
-  useInterval(animate, ANIMATION_INTERVAL_MS);
+  useEffect(() => {
+    function onVisibilityChange() {
+      setIsTabVisible(!document.hidden);
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
 
-  return displayData;
+  useEffect(() => {
+    if (!isTabVisible || isSessionExpired) return;
+    const id = window.setTimeout(
+      () => setIsSessionExpired(true),
+      SESSION_TIMEOUT_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, [isTabVisible, isSessionExpired]);
+
+  useInterval(poll, isLive ? POLL_INTERVAL_MS : null);
+  useInterval(animate, isLive ? ANIMATION_INTERVAL_MS : null);
+
+  return { vehicles: displayData, isSessionExpired, refresh };
 }
 
 function useInterval(callback: () => void, delay: number | null) {
