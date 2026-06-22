@@ -168,17 +168,6 @@ Pages) and configure:
 - **Environment variables:** `VITE_MAPBOX_TOKEN` for **Preview** and **Production**
   (Node 26 via `.node-version`; local dev uses `mise.toml`)
 
-There is no `wrangler.toml` in this repo. Git-connected Pages builds use the
-dashboard settings above. If you add a `wrangler.toml` with `pages_build_output_dir`,
-Cloudflare treats it as the source of truth and may stop injecting dashboard env
-vars during `npm run build` (log: `Build environment variables: (none found)` →
-Vite fails with `Missing VITE_MAPBOX_TOKEN`). Local `npm run cf:dev` / `cf:deploy`
-pass `client/dist` on the CLI and do not need a config file.
-
-The `functions/` directory is deployed automatically as Pages Functions, so
-`GET /septa` is served by `functions/septa.ts`. SPA routing is handled
-automatically by Pages (no `404.html` → all unmatched paths serve the app).
-
 You can also deploy from the CLI:
 
 ```bash
