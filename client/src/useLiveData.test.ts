@@ -27,7 +27,9 @@ describe("useLiveData", () => {
       expect(result.current.vehicles).toHaveLength(mockVehicles.length);
     });
 
-    expect(mockedAxios.get).toHaveBeenCalledWith("/septa");
+    expect(mockedAxios.get).toHaveBeenCalledWith("/septa", {
+      timeout: 30_000,
+    });
     expect(result.current.vehicles[0].VehicleID).toBe("bus-late");
   });
 
@@ -63,7 +65,8 @@ describe("useLiveData", () => {
 
     mockedAxios.get
       .mockResolvedValueOnce({ data: firstPoll })
-      .mockResolvedValueOnce({ data: secondPoll });
+      .mockResolvedValueOnce({ data: secondPoll })
+      .mockResolvedValue({ data: secondPoll });
 
     const { result } = renderHook(() => useLiveData());
 
@@ -71,14 +74,16 @@ describe("useLiveData", () => {
       await Promise.resolve();
     });
 
+    expect(mockedAxios.get.mock.calls.length).toBeGreaterThanOrEqual(1);
     expect(result.current.vehicles).toHaveLength(firstPoll.length);
     const startLng = result.current.vehicles[0].coordinates[0];
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10_000);
-      await vi.advanceTimersByTimeAsync(1_000);
+      await Promise.resolve();
     });
 
+    expect(mockedAxios.get.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(result.current.vehicles[0].coordinates[0]).not.toBe(startLng);
   });
 
@@ -154,10 +159,47 @@ describe("useLiveData", () => {
 
     await act(async () => {
       result.current.refresh();
+    });
+
+    await act(async () => {
       await Promise.resolve();
     });
 
     expect(result.current.isSessionExpired).toBe(false);
     expect(mockedAxios.get).toHaveBeenCalledTimes(callsAtExpiry + 1);
+  });
+
+  it("polls less frequently after a slow response", async () => {
+    vi.useFakeTimers();
+
+    mockedAxios.get.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          setTimeout(() => resolve({ data: mockVehicles }), 6_000);
+        }),
+    );
+
+    renderHook(() => useLiveData());
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(6_000);
+      await Promise.resolve();
+    });
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+      await Promise.resolve();
+    });
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+      await Promise.resolve();
+    });
+
+    expect(mockedAxios.get).toHaveBeenCalledTimes(2);
   });
 });

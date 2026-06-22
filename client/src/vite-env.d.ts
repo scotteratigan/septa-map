@@ -21,6 +21,15 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
+interface NetworkInformation {
+  readonly effectiveType?: "slow-2g" | "2g" | "3g" | "4g";
+  readonly saveData?: boolean;
+}
+
+interface Navigator {
+  readonly connection?: NetworkInformation;
+}
+
 interface Window {
   __SEPTA_MAP_TEST__?: {
     hoverVehicle: (vehicleId: string) => boolean;

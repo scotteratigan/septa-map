@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
+import {
+  ANIMATION_INTERVAL_MS,
+  BASE_POLL_INTERVAL_MS,
+  REQUEST_TIMEOUT_MS,
+  getAnimationSteps,
+  getConnectionHintPollIntervalMs,
+  resolvePollIntervalMs,
+} from "./pollInterval";
 import { isVehicleArray, Vehicle } from "./types";
 
-const POLL_INTERVAL_MS = 10000;
-const ANIMATION_INTERVAL_MS = 1000;
 const SESSION_TIMEOUT_MS = 5 * 60 * 1000;
-const TOTAL_STEPS = POLL_INTERVAL_MS / ANIMATION_INTERVAL_MS;
 
 type CoordinateMap = Record<string, [number, number]>;
 
@@ -18,7 +23,8 @@ export type LiveDataResult = {
 // Polls the /septa proxy for live vehicle positions and smoothly interpolates
 // each vehicle from its previous position to its newly reported one between
 // polls, so the markers glide instead of teleporting. Polling pauses while the
-// tab is hidden and stops after SESSION_TIMEOUT_MS of visible time.
+// tab is hidden, stops after SESSION_TIMEOUT_MS of visible time, and backs off
+// when requests are slow or fail.
 export default function useLiveData(): LiveDataResult {
   const [displayData, setDisplayData] = useState<Vehicle[]>([]);
   const [isTabVisible, setIsTabVisible] = useState(() => !document.hidden);
@@ -30,13 +36,51 @@ export default function useLiveData(): LiveDataResult {
   const fromRef = useRef<CoordinateMap>({});
   const toRef = useRef<CoordinateMap>({});
   const vehiclesRef = useRef<Vehicle[]>([]);
-  const stepRef = useRef(TOTAL_STEPS);
+  const stepRef = useRef(0);
+  const pollIntervalRef = useRef(
+    getConnectionHintPollIntervalMs() ?? BASE_POLL_INTERVAL_MS,
+  );
+  const totalStepsRef = useRef(getAnimationSteps(pollIntervalRef.current));
+  const isPollingRef = useRef(false);
+  const pollTimeoutRef = useRef<number | null>(null);
+  const isLiveRef = useRef(isLive);
+  isLiveRef.current = isLive;
 
   const pollRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
+  function clearPollTimeout() {
+    if (pollTimeoutRef.current !== null) {
+      window.clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
+    }
+  }
+
+  function scheduleNextPoll(delayMs: number) {
+    clearPollTimeout();
+    pollTimeoutRef.current = window.setTimeout(() => {
+      void pollRef.current();
+    }, delayMs);
+  }
+
+  function finalizePoll(durationMs: number, hadError: boolean) {
+    pollIntervalRef.current = resolvePollIntervalMs(durationMs, hadError);
+    totalStepsRef.current = getAnimationSteps(pollIntervalRef.current);
+
+    if (isLiveRef.current) {
+      scheduleNextPoll(pollIntervalRef.current);
+    }
+  }
+
   async function poll() {
+    if (isPollingRef.current) return;
+    isPollingRef.current = true;
+    const start = performance.now();
+    let hadError = false;
+
     try {
-      const res = await axios.get<unknown>("/septa");
+      const res = await axios.get<unknown>("/septa", {
+        timeout: REQUEST_TIMEOUT_MS,
+      });
       if (!isVehicleArray(res.data)) return;
 
       const nextTo: CoordinateMap = {};
@@ -60,7 +104,11 @@ export default function useLiveData(): LiveDataResult {
       stepRef.current = 0;
       setDisplayData(res.data);
     } catch (err) {
+      hadError = true;
       console.error("Failed to fetch SEPTA vehicle positions:", err);
+    } finally {
+      isPollingRef.current = false;
+      finalizePoll(performance.now() - start, hadError);
     }
   }
 
@@ -68,7 +116,8 @@ export default function useLiveData(): LiveDataResult {
     const vehicles = vehiclesRef.current;
     if (vehicles.length === 0) return;
 
-    const t = Math.min(stepRef.current, TOTAL_STEPS) / TOTAL_STEPS;
+    const totalSteps = totalStepsRef.current;
+    const t = Math.min(stepRef.current, totalSteps) / totalSteps;
 
     const frame = vehicles.map((vehicle) => {
       const id = vehicle.VehicleID;
@@ -80,19 +129,24 @@ export default function useLiveData(): LiveDataResult {
     });
 
     setDisplayData(frame);
-    if (stepRef.current < TOTAL_STEPS) stepRef.current += 1;
+    if (stepRef.current < totalSteps) stepRef.current += 1;
   }
 
   pollRef.current = poll;
 
   const refresh = useCallback(() => {
     setIsSessionExpired(false);
-    void pollRef.current();
   }, []);
 
   useEffect(() => {
-    poll();
-  }, []);
+    if (isLive) {
+      void pollRef.current();
+    } else {
+      clearPollTimeout();
+    }
+  }, [isLive]);
+
+  useEffect(() => clearPollTimeout, []);
 
   useEffect(() => {
     function onVisibilityChange() {
@@ -112,7 +166,6 @@ export default function useLiveData(): LiveDataResult {
     return () => window.clearTimeout(id);
   }, [isTabVisible, isSessionExpired]);
 
-  useInterval(poll, isLive ? POLL_INTERVAL_MS : null);
   useInterval(animate, isLive ? ANIMATION_INTERVAL_MS : null);
 
   return { vehicles: displayData, isSessionExpired, refresh };
