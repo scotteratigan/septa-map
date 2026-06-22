@@ -4,7 +4,7 @@ Instructions for coding agents working in this repository.
 
 ## Quick start
 
-Requires **Node 26** (see `.tool-versions`; [mise](https://mise.jdx.dev/) activates it automatically).
+Requires **Node 26** (see `mise.toml`; `.node-version` mirrors it for Cloudflare Pages). [mise](https://mise.jdx.dev/) activates it automatically.
 
 ```bash
 npm install
@@ -142,6 +142,6 @@ For map icon changes, zoom in **and** out — `IconLayer` uses meter-based sizin
 
 - Build: `npm run build`
 - Output: `client/dist`
-- Env: `VITE_MAPBOX_TOKEN`, `NODE_VERSION=26`
+- Env: `VITE_MAPBOX_TOKEN` (Node 26 via `.node-version` / `mise.toml`)
 
 See [README.md](README.md) for full setup and deployment details.
