@@ -53,7 +53,11 @@ describe("App", () => {
   it("renders the page header and vehicle count", () => {
     render(<App />);
 
-    expect(screen.getByText("SEPTA Live Feed")).toBeInTheDocument();
+    expect(screen.getByText("Unofficial SEPTA Live Map")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Scott Ratigan" })).toHaveAttribute(
+      "href",
+      "https://www.linkedin.com/in/scotteratigan/",
+    );
     expect(
       screen.getByText(
         `Showing ${mockVehicles.length} of ${mockVehicles.length} vehicles`,

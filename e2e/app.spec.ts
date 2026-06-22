@@ -22,8 +22,11 @@ test("loads the map page and vehicle feed", async ({ page }) => {
   await page.goto("/");
 
   await expect(
-    page.getByRole("heading", { name: "SEPTA Live Feed" }),
+    page.getByRole("heading", { name: "Unofficial SEPTA Live Map" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Scott Ratigan" }),
+  ).toHaveAttribute("href", "https://www.linkedin.com/in/scotteratigan/");
   await expect(page.getByText(`Showing 4 of 4 vehicles`)).toBeVisible({
     timeout: 15_000,
   });
