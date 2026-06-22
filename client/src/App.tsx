@@ -8,6 +8,13 @@ import subwayImg from './subway.svg';
 import './App.scss';
 import './mapbox-gl.css';
 import useLiveData from './useLiveData';
+import {
+  HoverInfo,
+  StatusFilter,
+  TypeFilter,
+  Vehicle,
+  VehicleType,
+} from './types';
 
 const initialViewState = {
   latitude: 39.9473128,
@@ -17,7 +24,10 @@ const initialViewState = {
   bearing: 0,
 };
 
-const VEHICLE_TYPES = {
+const VEHICLE_TYPES: Record<
+  VehicleType,
+  { label: string; icon: string; color: [number, number, number] }
+> = {
   bus: { label: 'Bus', icon: busImg, color: [234, 88, 12] },
   trolley: { label: 'Trolley', icon: trolleyImg, color: [22, 163, 74] },
   subway: { label: 'Subway', icon: subwayImg, color: [37, 99, 235] },
@@ -30,7 +40,7 @@ const LEGACY_TROLLEY_ROUTES = new Set([
   '10', '11', '13', '15', '34', '36', '101', '102',
 ]);
 
-function vehicleType(route) {
+function vehicleType(route: string): VehicleType {
   const r = String(route).toUpperCase();
   if (/^[BLM]\d+$/.test(r)) return 'subway';
   if (/^[TDG]\d+$/.test(r)) return 'trolley';
@@ -40,7 +50,7 @@ function vehicleType(route) {
 
 // Maps the new SEPTA Metro trolley codes to their legacy (pre-Metro) route
 // numbers, so riders who still know the lines by number can recognize them.
-const TROLLEY_LEGACY_NUMBERS = {
+const TROLLEY_LEGACY_NUMBERS: Record<string, string> = {
   T1: '10',
   T2: '11',
   T3: '13',
@@ -53,14 +63,14 @@ const TROLLEY_LEGACY_NUMBERS = {
 
 // Renders a route for display, appending the legacy trolley number in parens
 // when the route is a SEPTA Metro trolley code (e.g. "T1 (10)").
-function routeLabel(route) {
+function routeLabel(route: string): string {
   const legacy = TROLLEY_LEGACY_NUMBERS[String(route).toUpperCase()];
   return legacy ? `${route} (${legacy})` : String(route);
 }
 
 const ICON_DIMENSIONS = { width: 128, height: 128, anchorY: 128, mask: true };
 
-function lateness(late) {
+function lateness(late: number | undefined): string | null {
   if (typeof late !== 'number') return null;
   if (late > 0) return `${late} min late`;
   if (late < 0) return `${Math.abs(late)} min early`;
@@ -71,14 +81,14 @@ function lateness(late) {
 // SEPTA reports a few minutes of slack as effectively on time.
 const ON_TIME_THRESHOLD = 2;
 
-function status(late) {
+function status(late: number | undefined): Exclude<StatusFilter, 'all'> {
   if (typeof late !== 'number') return 'unknown';
   if (late > ON_TIME_THRESHOLD) return 'late';
   if (late < -ON_TIME_THRESHOLD) return 'early';
   return 'onTime';
 }
 
-const STATUS_OPTIONS = {
+const STATUS_OPTIONS: Record<Exclude<StatusFilter, 'unknown'>, string> = {
   all: 'All statuses',
   onTime: 'On time',
   late: 'Late',
@@ -87,15 +97,15 @@ const STATUS_OPTIONS = {
 
 function App() {
   const busData = useLiveData();
-  const [hover, setHover] = useState(null);
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [hover, setHover] = useState<HoverInfo | null>(null);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [routeFilter, setRouteFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   // Routes available in the current feed, narrowed to the selected vehicle
   // type so the route dropdown only ever offers relevant choices.
   const routeOptions = React.useMemo(() => {
-    const routes = new Set();
+    const routes = new Set<string>();
     busData.forEach(d => {
       if (typeFilter === 'all' || vehicleType(d.route) === typeFilter) {
         routes.add(String(d.route));
@@ -113,8 +123,8 @@ function App() {
     return true;
   });
 
-  function handleTypeChange(value) {
-    setTypeFilter(value);
+  function handleTypeChange(value: string) {
+    setTypeFilter(value as TypeFilter);
     // A route only belongs to one vehicle type, so changing type can orphan the
     // current route selection; reset it to avoid an empty result set.
     setRouteFilter('all');
@@ -124,7 +134,7 @@ function App() {
     id: 'icon-layer',
     data: filteredData,
     pickable: true,
-    getIcon: d => {
+    getIcon: (d: Vehicle) => {
       const type = vehicleType(d.route);
       return { id: type, url: VEHICLE_TYPES[type].icon, ...ICON_DIMENSIONS };
     },
@@ -134,15 +144,17 @@ function App() {
     sizeScale: 1,
     sizeMinPixels: 8,
     sizeMaxPixels: 36,
-    getPosition: d => d.coordinates,
+    getPosition: (d: Vehicle) => d.coordinates,
     getSize: () => 380,
-    getColor: d => VEHICLE_TYPES[vehicleType(d.route)].color,
-    onHover: info =>
-      setHover(info.object ? { object: info.object, x: info.x, y: info.y } : null),
+    getColor: (d: Vehicle) => VEHICLE_TYPES[vehicleType(d.route)].color,
+    onHover: (info: { object?: Vehicle; x: number; y: number }) =>
+      setHover(
+        info.object ? { object: info.object, x: info.x, y: info.y } : null
+      ),
   });
 
-  const hoveredType = hover && VEHICLE_TYPES[vehicleType(hover.object.route)];
-  const late = hover && lateness(hover.object.late);
+  const hoveredType = hover ? VEHICLE_TYPES[vehicleType(hover.object.route)] : null;
+  const late = hover ? lateness(hover.object.late) : null;
 
   return (
     <div id='map-page'>
@@ -196,7 +208,7 @@ function App() {
             <span className='filters__label'>Status</span>
             <select
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}>
+              onChange={e => setStatusFilter(e.target.value as StatusFilter)}>
               {Object.entries(STATUS_OPTIONS).map(([key, label]) => (
                 <option key={key} value={key}>
                   {label}
@@ -211,7 +223,7 @@ function App() {
           </div>
         </div>
       </div>
-      {hover && (
+      {hover && hoveredType && (
         <div className='bus-tooltip' style={{ left: hover.x, top: hover.y }}>
           <div className='bus-tooltip__route'>
             {hoveredType.label} &middot; Route {routeLabel(hover.object.route)}

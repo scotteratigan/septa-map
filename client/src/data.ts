@@ -1,4 +1,6 @@
-export default [
+import { Vehicle } from './types';
+
+const data: Vehicle[] = [
   {
     lat: '39.965988',
     lng: '-75.206703',
@@ -663,3 +665,5 @@ export default [
     coordinates: [-75.102562, 39.990437],
   },
 ];
+
+export default data;
