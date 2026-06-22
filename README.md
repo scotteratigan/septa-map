@@ -18,6 +18,68 @@ avoid browser CORS issues.
 
 The Express server (`index.ts`) is retained only for local development.
 
+## Data source
+
+Vehicle positions come from SEPTA's public
+[TransitViewAll](https://www3.septa.org/hackathon/TransitViewAll/) JSON feed
+(`https://www3.septa.org/hackathon/TransitViewAll/`). This is part of SEPTA's
+Hackathon API — no API key is required.
+
+The feed returns a nested structure: routes → vehicles, each with latitude,
+longitude, route ID, vehicle ID, and related metadata. Positions update on the
+order of every few seconds as SEPTA's AVL (automatic vehicle location) system
+reports GPS fixes from buses and trolleys in service.
+
+The app never calls SEPTA directly from the browser. A server-side proxy
+fetches the feed, validates the response shape, and flattens it into a single
+array of vehicles with `[lng, lat]` coordinates (see `normalizeVehicles` in
+`client/src/types.ts`).
+
+## Data flow
+
+### Production (Cloudflare Pages)
+
+```text
+Browser (React SPA)
+  │  GET /septa every 10s
+  ▼
+Cloudflare Pages Function (functions/septa.ts)
+  │  GET TransitViewAll
+  ▼
+SEPTA API (www3.septa.org)
+```
+
+1. The browser loads static assets (`client/dist`) from Cloudflare's CDN.
+2. `useLiveData` polls `GET /septa` on the same origin every 10 seconds.
+3. The Pages Function fetches the TransitViewAll feed from SEPTA, normalizes
+   the response, and returns a flat JSON array of vehicles.
+4. Responses are cached at the edge for 5 seconds (`Cache-Control: max-age=5`)
+   to absorb traffic spikes without making the map feel stale.
+5. Between polls, the frontend interpolates each vehicle's position so markers
+   glide smoothly instead of jumping.
+
+There is no separate backend service in production — the static site and
+`/septa` proxy are both served by Cloudflare Pages.
+
+### Local development
+
+```text
+Browser (React SPA)
+  │  GET /septa every 10s
+  ▼
+Vite dev server (:5173) — proxy
+  ▼
+Express (:5050, server.ts)
+  │  GET TransitViewAll
+  ▼
+SEPTA API (www3.septa.org)
+```
+
+Locally, Vite proxies `/septa` to the Express dev server on port 5050, which
+performs the same fetch-and-normalize step as the Cloudflare Function. Use
+`npm run cf:dev` to test the production path (static build + Pages Function via
+Wrangler) without deploying.
+
 ## Environment variables
 
 | Variable             | Where      | Purpose                                |
