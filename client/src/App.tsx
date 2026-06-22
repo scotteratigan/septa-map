@@ -90,7 +90,7 @@ function App() {
           <h1 className="page-header__title">SEPTA Live Feed</h1>
           <p className="page-header__subtitle">
             Real-time positions of SEPTA buses, trolleys, and subways across
-            Philadelphia, updated every few seconds.
+            Philadelphia, updated in realtime.
           </p>
         </header>
 
