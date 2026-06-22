@@ -174,8 +174,8 @@ env vars during Git builds (you will see `Build environment variables: (none fou
 in the log and Vite will fail with `Missing VITE_MAPBOX_TOKEN`).
 
 The `functions/` directory is deployed automatically as Pages Functions, so
-`GET /septa` is served by `functions/septa.ts`. SPA routing is handled by
-`client/public/_redirects`.
+`GET /septa` is served by `functions/septa.ts`. SPA routing is handled
+automatically by Pages (no `404.html` → all unmatched paths serve the app).
 
 You can also deploy from the CLI:
 
