@@ -3,14 +3,17 @@
   "version": "1.0.0",
   "description": "Display Live SEPTA bus &amp; trolley positions.",
   "main": "index.ts",
+  "engines": {
+    "node": ">=26.0.0"
+  },
   "dependencies": {
-    "axios": "^0.19.0",
+    "axios": "^1.18.0",
     "body-parser": "^1.19.0",
     "express": "^4.17.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
-    "@types/node": "^22.10.2",
+    "@types/node": "^26.0.0",
     "concurrently": "^5.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",

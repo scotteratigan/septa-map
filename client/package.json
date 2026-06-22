@@ -2,6 +2,9 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=26.0.0"
+  },
   "dependencies": {
     "axios": "^1.7.7",
     "deck.gl": "^7.3.3",
@@ -19,7 +22,7 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.10.2",
+    "@types/node": "^26.0.0",
     "@types/react": "^16.14.62",
     "@types/react-dom": "^16.9.25",
     "ajv": "^8.17.1",
