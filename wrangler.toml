@@ -1,3 +1,6 @@
 name = "septa-map"
 compatibility_date = "2025-01-01"
-pages_build_output_dir = "client/dist"
+
+# Do not add pages_build_output_dir here. When present, Cloudflare Git builds treat
+# wrangler.toml as the config source of truth and ignore dashboard env vars during
+# `npm run build`. Set build output directory (client/dist) in the Pages dashboard.

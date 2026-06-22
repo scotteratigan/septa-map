@@ -29,6 +29,25 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     build: {
       outDir: "dist",
+      // mapbox-gl ships as a single ~1.8 MB bundle with no meaningful sub-chunks.
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules/mapbox-gl")) {
+              return "mapbox-gl";
+            }
+            if (
+              id.includes("node_modules/@deck.gl") ||
+              id.includes("node_modules/@luma.gl") ||
+              id.includes("node_modules/@loaders.gl") ||
+              id.includes("node_modules/@math.gl")
+            ) {
+              return "deck-gl";
+            }
+          },
+        },
+      },
     },
     server: {
       port: 5173,

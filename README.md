@@ -165,7 +165,13 @@ Pages) and configure:
 
 - **Build command:** `npm run build`
 - **Build output directory:** `client/dist`
-- **Environment variables:** `VITE_MAPBOX_TOKEN` (Node 26 via `.node-version`; local dev uses `mise.toml`)
+- **Environment variables:** `VITE_MAPBOX_TOKEN` for **Preview** and **Production**
+  (Node 26 via `.node-version`; local dev uses `mise.toml`)
+
+**Important:** `wrangler.toml` in this repo is for local `wrangler pages dev` only.
+Do not add `pages_build_output_dir` to it — that makes Cloudflare ignore dashboard
+env vars during Git builds (you will see `Build environment variables: (none found)`
+in the log and Vite will fail with `Missing VITE_MAPBOX_TOKEN`).
 
 The `functions/` directory is deployed automatically as Pages Functions, so
 `GET /septa` is served by `functions/septa.ts`. SPA routing is handled by

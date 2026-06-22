@@ -45,8 +45,8 @@
     "dev:server": "concurrently \"PORT=5050 tsx index.ts\" \"npm run dev -w client\"",
     "inspect": "node scripts/inspect-app.mjs",
     "build": "npm run build -w client",
-    "cf:dev": "npm run build && wrangler pages dev",
-    "cf:deploy": "npm run build && wrangler pages deploy"
+    "cf:dev": "npm run build && wrangler pages dev client/dist",
+    "cf:deploy": "npm run build && wrangler pages deploy client/dist"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

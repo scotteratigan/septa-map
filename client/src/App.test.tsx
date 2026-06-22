@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -14,39 +13,32 @@ vi.mock("./useLiveData", () => ({
   default: () => useLiveDataMock(),
 }));
 
-vi.mock("@deck.gl/react", () => ({
-  DeckGL: ({
-    layers,
-    children,
+vi.mock("./MapView", () => ({
+  default: ({
+    onHover,
   }: {
-    layers?: Array<{ props: { onHover?: (info: unknown) => void } }>;
-    children?: ReactNode;
-  }) => {
-    const onHover = layers?.[0]?.props.onHover;
-
-    return (
-      <div data-testid="deck-gl">
-        <button
-          type="button"
-          data-testid="simulate-hover"
-          onClick={() =>
-            onHover?.({
-              object: mockVehicles[0],
-              x: 120,
-              y: 240,
-            })
-          }
-        >
-          Hover vehicle
-        </button>
-        {children}
-      </div>
-    );
-  },
-}));
-
-vi.mock("react-map-gl", () => ({
-  default: () => <div data-testid="map" />,
+    onHover?: (info: {
+      object: (typeof mockVehicles)[number];
+      x: number;
+      y: number;
+    }) => void;
+  }) => (
+    <div data-testid="deck-gl">
+      <button
+        type="button"
+        data-testid="simulate-hover"
+        onClick={() =>
+          onHover?.({
+            object: mockVehicles[0],
+            x: 120,
+            y: 240,
+          })
+        }
+      >
+        Hover vehicle
+      </button>
+    </div>
+  ),
 }));
 
 describe("App", () => {
