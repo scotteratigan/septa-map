@@ -2,4 +2,223 @@
   background-color: silver;
   height: 100vh;
   width: 100vw;
+  position: relative;
+  overflow: hidden;
+}
+
+$panel-bg: rgba(20, 20, 20, 0.9);
+$panel-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+// Top overlay layer holding the centered page header and the left filter panel.
+// On wide screens the header is centered independently of the filter panel; on
+// narrow screens the two stack into a single column.
+$panel-width: 280px;
+
+.hud {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 2;
+  pointer-events: none;
+  font-family: $panel-font;
+  // Reserve space for the left filter panel so the centered header only ever
+  // occupies the area beside it and the two can never overlap.
+  padding-left: $panel-width + 16px;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+.page-header {
+  box-sizing: border-box;
+  width: max-content;
+  max-width: min(560px, 100%);
+  margin: 0 auto;
+  background-color: $panel-bg;
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px 22px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+
+  &__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.controls {
+  box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: $panel-width;
+  max-width: 100%;
+  background-color: $panel-bg;
+  color: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+// Narrow screens: collapse the overlay into one stacked column so the centered
+// header and the filter panel no longer overlap.
+@media (max-width: 600px) {
+  .hud {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-left: 0;
+  }
+
+  .page-header {
+    width: auto;
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .controls {
+    position: static;
+    width: auto;
+  }
+}
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  select {
+    appearance: none;
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.14);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    option {
+      color: #000;
+    }
+  }
+
+  &__count {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+.session-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.45);
+  padding: 16px;
+
+  &__panel {
+    box-sizing: border-box;
+    width: min(360px, 100%);
+    background-color: $panel-bg;
+    color: #fff;
+    border-radius: 10px;
+    padding: 20px 22px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    font-family: $panel-font;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  &__body {
+    margin: 10px 0 18px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  &__button {
+    appearance: none;
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.22);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: rgba(255, 255, 255, 0.55);
+    }
+  }
+}
+
+.bus-tooltip {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  transform: translate(12px, 12px);
+  background-color: rgba(20, 20, 20, 0.9);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 6px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+
+  &__route {
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
 }

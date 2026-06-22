@@ -2,21 +2,62 @@
   "name": "septa-map",
   "version": "1.0.0",
   "description": "Display Live SEPTA bus &amp; trolley positions.",
-  "main": "index.js",
+  "main": "index.ts",
+  "private": true,
+  "workspaces": [
+    "client"
+  ],
+  "engines": {
+    "node": ">=26.0.0"
+  },
   "dependencies": {
-    "axios": "^0.19.0",
+    "axios": "^1.18.0",
     "body-parser": "^1.19.0",
     "express": "^4.17.1"
   },
   "devDependencies": {
-    "concurrently": "^5.0.0"
+    "@playwright/test": "^1.61.0",
+    "@types/supertest": "^6.0.3",
+    "@types/express": "^5.0.0",
+    "@types/node": "^26.0.0",
+    "concurrently": "^5.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "oxfmt": "^0.9.0",
+    "oxlint": "^0.16.0",
+    "playwright": "^1.61.0",
+    "supertest": "^7.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.9",
+    "wrangler": "^4.103.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index",
-    "dev": "concurrently \"node index\" \"cd client && npm run start\"",
-    "build": "cd client && npm run build",
-    "heroku-postbuild": "npm install && cd client && npm install && npm run build"
+    "prepare": "husky",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "npm run test -w client && vitest run --config vitest.config.ts",
+    "test:e2e": "playwright test",
+    "start": "tsx index.ts",
+    "dev": "concurrently -n server,vite,chrome -c blue,green,magenta \"PORT=5050 tsx index.ts\" \"npm run dev -w client\" \"node scripts/open-chrome-dev.mjs\"",
+    "dev:server": "concurrently \"PORT=5050 tsx index.ts\" \"npm run dev -w client\"",
+    "inspect": "node scripts/inspect-app.mjs",
+    "build": "npm run build -w client",
+    "cf:dev": "npm run build && wrangler pages dev",
+    "cf:deploy": "npm run build && wrangler pages deploy"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "oxfmt",
+      "oxlint --fix"
+    ]
+  },
+  "oxfmt": {
+    "singleQuote": true,
+    "indentStyle": "space",
+    "indentWidth": 2
   },
   "repository": {
     "type": "git",
