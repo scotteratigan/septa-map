@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import axios from 'axios';
-import { isVehicleArray, Vehicle } from './types';
+import { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import { isVehicleArray, Vehicle } from "./types";
 
 const POLL_INTERVAL_MS = 10000;
 const ANIMATION_INTERVAL_MS = 1000;
@@ -23,11 +23,11 @@ export default function useLiveData(): Vehicle[] {
 
   async function poll() {
     try {
-      const res = await axios.get<unknown>('/septa');
+      const res = await axios.get<unknown>("/septa");
       if (!isVehicleArray(res.data)) return;
 
       const nextTo: CoordinateMap = {};
-      res.data.forEach(vehicle => {
+      res.data.forEach((vehicle) => {
         nextTo[vehicle.VehicleID] = vehicle.coordinates;
       });
 
@@ -36,7 +36,7 @@ export default function useLiveData(): Vehicle[] {
       // instead of animating in from [0, 0].
       const prevTo = toRef.current;
       const nextFrom: CoordinateMap = {};
-      res.data.forEach(vehicle => {
+      res.data.forEach((vehicle) => {
         const id = vehicle.VehicleID;
         nextFrom[id] = prevTo[id] || nextTo[id];
       });
@@ -45,8 +45,9 @@ export default function useLiveData(): Vehicle[] {
       toRef.current = nextTo;
       vehiclesRef.current = res.data;
       stepRef.current = 0;
+      setDisplayData(res.data);
     } catch (err) {
-      console.error('Failed to fetch SEPTA vehicle positions:', err);
+      console.error("Failed to fetch SEPTA vehicle positions:", err);
     }
   }
 
@@ -56,7 +57,7 @@ export default function useLiveData(): Vehicle[] {
 
     const t = Math.min(stepRef.current, TOTAL_STEPS) / TOTAL_STEPS;
 
-    const frame = vehicles.map(vehicle => {
+    const frame = vehicles.map((vehicle) => {
       const id = vehicle.VehicleID;
       const from = fromRef.current[id] || vehicle.coordinates;
       const to = toRef.current[id] || vehicle.coordinates;
@@ -71,7 +72,6 @@ export default function useLiveData(): Vehicle[] {
 
   useEffect(() => {
     poll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useInterval(poll, POLL_INTERVAL_MS);
@@ -81,7 +81,7 @@ export default function useLiveData(): Vehicle[] {
 }
 
 function useInterval(callback: () => void, delay: number | null) {
-  const savedCallback = useRef<(() => void) | undefined>();
+  const savedCallback = useRef<(() => void) | undefined>(undefined);
   useEffect(() => {
     savedCallback.current = callback;
   }, [callback]);

@@ -1,0 +1,4 @@
+{
+  "plugins": ["typescript", "react"],
+  "ignorePatterns": ["client/dist", "node_modules", ".wrangler"]
+}

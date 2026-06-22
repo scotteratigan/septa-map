@@ -1,6 +1,6 @@
-export type VehicleType = 'bus' | 'trolley' | 'subway';
-export type StatusFilter = 'all' | 'onTime' | 'late' | 'early' | 'unknown';
-export type TypeFilter = 'all' | VehicleType;
+export type VehicleType = "bus" | "trolley" | "subway";
+export type StatusFilter = "all" | "onTime" | "late" | "early" | "unknown";
+export type TypeFilter = "all" | VehicleType;
 
 /** Raw + normalized fields from the SEPTA proxy */
 export interface Vehicle {
@@ -62,20 +62,22 @@ export function isVehicleArray(data: unknown): data is Vehicle[] {
   return (
     Array.isArray(data) &&
     data.every(
-      item =>
-        typeof item === 'object' &&
+      (item) =>
+        typeof item === "object" &&
         item !== null &&
-        'VehicleID' in item &&
-        'coordinates' in item &&
-        'route' in item
+        "VehicleID" in item &&
+        "coordinates" in item &&
+        "route" in item,
     )
   );
 }
 
 export function isSeptaTransitViewResponse(
-  data: unknown
+  data: unknown,
 ): data is SeptaTransitViewResponse {
-  if (typeof data !== 'object' || data === null) return false;
+  if (typeof data !== "object" || data === null) return false;
   const routes = (data as SeptaTransitViewResponse).routes;
-  return Array.isArray(routes) && routes.length > 0 && typeof routes[0] === 'object';
+  return (
+    Array.isArray(routes) && routes.length > 0 && typeof routes[0] === "object"
+  );
 }

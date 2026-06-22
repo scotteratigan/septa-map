@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Display Live SEPTA bus &amp; trolley positions.",
   "main": "index.ts",
+  "private": true,
+  "workspaces": [
+    "client"
+  ],
   "engines": {
     "node": ">=26.0.0"
   },
@@ -15,17 +19,37 @@
     "@types/express": "^5.0.0",
     "@types/node": "^26.0.0",
     "concurrently": "^5.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "oxfmt": "^0.9.0",
+    "oxlint": "^0.16.0",
+    "playwright": "^1.61.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "wrangler": "^4.103.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "test": "npm run test -w client",
     "start": "tsx index.ts",
-    "dev": "concurrently \"PORT=5050 tsx index.ts\" \"cd client && npm run start\"",
-    "build": "cd client && npm install && npm run build",
+    "dev": "concurrently \"PORT=5050 tsx index.ts\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
     "cf:dev": "npm run build && wrangler pages dev",
     "cf:deploy": "npm run build && wrangler pages deploy"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "oxfmt",
+      "oxlint --fix"
+    ]
+  },
+  "oxfmt": {
+    "singleQuote": true,
+    "indentStyle": "space",
+    "indentWidth": 2
   },
   "repository": {
     "type": "git",

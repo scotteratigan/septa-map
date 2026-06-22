@@ -23,11 +23,13 @@ export interface Vehicle {
 }
 
 export function isSeptaTransitViewResponse(
-  data: unknown
+  data: unknown,
 ): data is SeptaTransitViewResponse {
-  if (typeof data !== 'object' || data === null) return false;
+  if (typeof data !== "object" || data === null) return false;
   const routes = (data as SeptaTransitViewResponse).routes;
-  return Array.isArray(routes) && routes.length > 0 && typeof routes[0] === 'object';
+  return (
+    Array.isArray(routes) && routes.length > 0 && typeof routes[0] === "object"
+  );
 }
 
 export function normalizeVehicles(routes: SeptaRoutesMap): Vehicle[] {
