@@ -87,10 +87,29 @@ function App() {
 
       <div className="hud">
         <header className="page-header">
-          <h1 className="page-header__title">SEPTA Live Feed</h1>
+          <h1 className="page-header__title">Unofficial SEPTA Live Map</h1>
           <p className="page-header__subtitle">
             Real-time positions of SEPTA buses, trolleys, and subways across
-            Philadelphia, updated in realtime.
+            Philadelphia.
+          </p>
+          <p className="page-header__disclaimer">
+            Portfolio project by{" "}
+            <a
+              href="https://www.linkedin.com/in/scotteratigan/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Scott Ratigan
+            </a>{" "}
+            — not affiliated with SEPTA. Transit data provided by{" "}
+            <a
+              href="https://www.septa.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              SEPTA
+            </a>
+            .
           </p>
         </header>
 
