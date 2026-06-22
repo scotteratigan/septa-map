@@ -92,8 +92,9 @@ variable in the Cloudflare Pages project settings.
 
 ## Local development
 
-Requires **Node 26** (pinned in `.tool-versions`; [mise](https://mise.jdx.dev/) will
-activate it automatically in this directory).
+Requires **Node 26** (pinned in `mise.toml` for local dev; `.node-version` is
+committed for Cloudflare Pages and other Node version managers). [mise](https://mise.jdx.dev/)
+activates the version automatically in this directory.
 
 ```bash
 # install dependencies (npm workspaces — single install at repo root)
@@ -164,12 +165,8 @@ Pages) and configure:
 
 - **Build command:** `npm run build`
 - **Build output directory:** `client/dist`
-- **Environment variables:** `VITE_MAPBOX_TOKEN`, and `NODE_VERSION=26`
-  (also pinned via `.tool-versions` for local development with mise)
-
-The `functions/` directory is deployed automatically as Pages Functions, so
-`GET /septa` is served by `functions/septa.ts`. SPA routing is handled by
-`client/public/_redirects`.
+- **Environment variables:** `VITE_MAPBOX_TOKEN` for **Preview** and **Production**
+  (Node 26 via `.node-version`; local dev uses `mise.toml`)
 
 You can also deploy from the CLI:
 

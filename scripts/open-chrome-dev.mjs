@@ -1,21 +1,21 @@
-import { accessSync, mkdirSync, writeFileSync } from 'fs';
-import { spawn } from 'child_process';
-import { join } from 'path';
+import { accessSync, mkdirSync, writeFileSync } from "fs";
+import { spawn } from "child_process";
+import { join } from "path";
 
-const APP_URL = process.env.APP_URL ?? 'http://localhost:5173';
+const APP_URL = process.env.APP_URL ?? "http://localhost:5173";
 const DEBUG_PORT = Number(process.env.CHROME_DEBUG_PORT ?? 9222);
-const DEV_DIR = join(process.cwd(), '.dev');
-const PROFILE_DIR = join(DEV_DIR, 'chrome-profile');
-const BROWSER_INFO = join(DEV_DIR, 'browser.json');
+const DEV_DIR = join(process.cwd(), ".dev");
+const PROFILE_DIR = join(DEV_DIR, "chrome-profile");
+const BROWSER_INFO = join(DEV_DIR, "browser.json");
 
 function findChrome() {
   const candidates = [
     process.env.CHROME_PATH,
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
   ].filter(Boolean);
 
   for (const path of candidates) {
@@ -28,7 +28,7 @@ function findChrome() {
   }
 
   throw new Error(
-    'Chrome not found. Set CHROME_PATH to your Chrome/Chromium executable.',
+    "Chrome not found. Set CHROME_PATH to your Chrome/Chromium executable.",
   );
 }
 
@@ -76,7 +76,7 @@ function writeBrowserInfo(version) {
         cdpUrl: `http://127.0.0.1:${DEBUG_PORT}`,
         webSocketDebuggerUrl: version.webSocketDebuggerUrl,
         browser: version.Browser,
-        userAgent: version['User-Agent'],
+        userAgent: version["User-Agent"],
       },
       null,
       2,
@@ -100,11 +100,11 @@ async function main() {
       [
         `--remote-debugging-port=${DEBUG_PORT}`,
         `--user-data-dir=${PROFILE_DIR}`,
-        '--no-first-run',
-        '--no-default-browser-check',
+        "--no-first-run",
+        "--no-default-browser-check",
         APP_URL,
       ],
-      { stdio: 'ignore', detached: true },
+      { stdio: "ignore", detached: true },
     ).unref();
 
     version = await waitForCdp(DEBUG_PORT);

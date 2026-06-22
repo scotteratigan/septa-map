@@ -1,40 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
-import { DeckGL } from "@deck.gl/react";
-import { IconLayer } from "@deck.gl/layers";
-import Map from "react-map-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
-import busImg from "./bus.svg?url";
-import trolleyImg from "./trolley.svg?url";
-import subwayImg from "./subway.svg?url";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import "./App.scss";
 import useLiveData from "./useLiveData";
-import {
-  HoverInfo,
-  StatusFilter,
-  TypeFilter,
-  Vehicle,
-  VehicleType,
-} from "./types";
+import { HoverInfo, StatusFilter, TypeFilter } from "./types";
 import { lateness, routeLabel, status, vehicleType } from "./vehicleUtils";
+import { VEHICLE_TYPES } from "./vehicleDisplay";
 
-const initialViewState = {
-  latitude: 39.9473128,
-  longitude: -75.2157864,
-  zoom: 13,
-  pitch: 45,
-  bearing: 0,
-};
-
-const VEHICLE_TYPES: Record<
-  VehicleType,
-  { label: string; icon: string; color: [number, number, number] }
-> = {
-  bus: { label: "Bus", icon: busImg, color: [234, 88, 12] },
-  trolley: { label: "Trolley", icon: trolleyImg, color: [22, 163, 74] },
-  subway: { label: "Subway", icon: subwayImg, color: [37, 99, 235] },
-};
-
-const ICON_DIMENSIONS = { width: 128, height: 128, anchorY: 128, mask: true };
+const MapView = React.lazy(() => import("./MapView"));
 
 const STATUS_OPTIONS: Record<Exclude<StatusFilter, "unknown">, string> = {
   all: "All statuses",
@@ -42,8 +13,6 @@ const STATUS_OPTIONS: Record<Exclude<StatusFilter, "unknown">, string> = {
   late: "Late",
   early: "Early",
 };
-
-const MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
 
 function App() {
   const { vehicles: busData, isSessionExpired, refresh } = useLiveData();
@@ -105,29 +74,6 @@ function App() {
     setRouteFilter("all");
   }
 
-  const busLayer = new IconLayer({
-    id: "icon-layer",
-    data: filteredData,
-    pickable: true,
-    getIcon: (d: Vehicle) => {
-      const type = vehicleType(d.route);
-      return { id: type, url: VEHICLE_TYPES[type].icon, ...ICON_DIMENSIONS };
-    },
-    // Size in meters so icons shrink when zoomed out; pixel clamps keep
-    // markers readable without turning into blobs at city-wide zoom.
-    sizeUnits: "meters",
-    sizeScale: 1,
-    sizeMinPixels: 3,
-    sizeMaxPixels: 18,
-    getPosition: (d: Vehicle) => d.coordinates,
-    getSize: () => 200,
-    getColor: (d: Vehicle) => VEHICLE_TYPES[vehicleType(d.route)].color,
-    onHover: (info: { object?: Vehicle; x: number; y: number }) =>
-      setHover(
-        info.object ? { object: info.object, x: info.x, y: info.y } : null,
-      ),
-  });
-
   const hoveredType = hover
     ? VEHICLE_TYPES[vehicleType(hover.object.route)]
     : null;
@@ -135,24 +81,16 @@ function App() {
 
   return (
     <div id="map-page">
-      <DeckGL
-        initialViewState={initialViewState}
-        controller={true}
-        layers={[busLayer]}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <Map
-          mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
-          mapStyle={MAP_STYLE}
-        />
-      </DeckGL>
+      <Suspense fallback={null}>
+        <MapView vehicles={filteredData} onHover={setHover} />
+      </Suspense>
 
       <div className="hud">
         <header className="page-header">
           <h1 className="page-header__title">SEPTA Live Feed</h1>
           <p className="page-header__subtitle">
             Real-time positions of SEPTA buses, trolleys, and subways across
-            Philadelphia, updated every few seconds.
+            Philadelphia, updated in realtime.
           </p>
         </header>
 

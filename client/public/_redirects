@@ -1,3 +1,0 @@
-# SPA fallback: serve the React app for any path that isn't a static asset or a
-# Pages Function (e.g. /septa). Functions take priority over this rule.
-/* /index.html 200
